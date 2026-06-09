@@ -1,1 +1,785 @@
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Toán Lớp 3 - Vương Quốc Phép Thuật</title>
+    <!-- Tailwind CSS để dựng giao diện nhanh và đẹp -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts cho font chữ dễ thương phù hợp trẻ em -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome để dùng các icon đẹp -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .bounce-active:active {
+            transform: scale(0.95);
+        }
+        /* Hiệu ứng mây bay nền */
+        .cloud {
+            animation: float 20s linear infinite;
+        }
+        @keyframes float {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(calc(100vw + 100px)); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-sky-300 via-blue-200 to-emerald-200 min-h-screen overflow-x-hidden flex flex-col justify-between text-slate-800 relative">
+
+    <!-- Lớp nền mây trôi tăng sinh động -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div class="cloud absolute top-10 opacity-30 text-white text-5xl" style="animation-delay: 0s;"><i class="fa-solid fa-cloud"></i></div>
+        <div class="cloud absolute top-32 opacity-25 text-white text-7xl" style="animation-delay: -5s; animation-duration: 25s;"><i class="fa-solid fa-cloud"></i></div>
+        <div class="cloud absolute top-60 opacity-40 text-white text-4xl" style="animation-delay: -12s; animation-duration: 18s;"><i class="fa-solid fa-cloud"></i></div>
+    </div>
+
+    <!-- Canvas tạo hiệu ứng pháo hoa khi bé thắng cuộc -->
+    <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none z-50 w-full h-full hidden"></canvas>
+
+    <!-- MÀN HÌNH CHỌN NHÂN VẬT -->
+    <div id="screen-character" class="pop-in flex-1 flex flex-col justify-center items-center px-4 py-8 z-10">
+        <div class="bg-white/95 rounded-3xl p-6 shadow-2xl max-w-md w-full text-center border-4 border-amber-400">
+            <h1 class="text-3xl font-extrabold text-amber-500 mb-2 drop-shadow-sm">Toán Lớp 3</h1>
+            <p class="text-lg text-slate-600 font-bold mb-6">Chào mừng bé! Hãy chọn người bạn đồng hành nhé:</p>
+            
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <!-- Thỏ Thông Thái -->
+                <button onclick="selectCharacter('rabbit')" class="char-btn border-4 border-transparent bg-emerald-50 rounded-2xl p-3 flex flex-col items-center hover:border-emerald-400 transition-all active:scale-95">
+                    <span class="text-5xl mb-2">🐰</span>
+                    <span class="font-extrabold text-sm text-emerald-600">Thỏ Trắng</span>
+                    <span class="text-xs text-slate-500 font-semibold mt-1">Thông Thái</span>
+                </button>
+                <!-- Khỉ Nhanh Trí -->
+                <button onclick="selectCharacter('monkey')" class="char-btn border-4 border-transparent bg-amber-50 rounded-2xl p-3 flex flex-col items-center hover:border-amber-400 transition-all active:scale-95">
+                    <span class="text-5xl mb-2">🐵</span>
+                    <span class="font-extrabold text-sm text-amber-600">Khỉ Vàng</span>
+                    <span class="text-xs text-slate-500 font-semibold mt-1">Nhanh Trí</span>
+                </button>
+                <!-- Gấu Siêng Năng -->
+                <button onclick="selectCharacter('bear')" class="char-btn border-4 border-transparent bg-indigo-50 rounded-2xl p-3 flex flex-col items-center hover:border-indigo-400 transition-all active:scale-95">
+                    <span class="text-5xl mb-2">🐻</span>
+                    <span class="font-extrabold text-sm text-indigo-600">Gấu Xám</span>
+                    <span class="text-xs text-slate-500 font-semibold mt-1">Chăm Chỉ</span>
+                </button>
+            </div>
+
+            <!-- Tên của bé -->
+            <div class="mb-6">
+                <label class="block text-left text-slate-700 font-bold mb-2">Tên của bé là gì thế?</label>
+                <input type="text" id="player-name" placeholder="Ví dụ: Minh Khôi..." class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-amber-400 focus:outline-none font-bold text-center text-lg">
+            </div>
+
+            <button onclick="saveCharacter()" class="w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-black text-xl py-4 px-6 rounded-2xl shadow-lg shadow-orange-500/30 transform transition active:scale-95">
+                VÀO THỬ THÁCH NGAY <i class="fa-solid fa-rocket ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH CHỌN CHỦ ĐỀ -->
+    <div id="screen-topics" class="pop-in flex-1 flex flex-col justify-start items-center px-4 py-6 z-10 hidden">
+        <!-- Header thông tin nhân vật -->
+        <div class="w-full max-w-md bg-white/90 rounded-2xl p-3 flex justify-between items-center shadow-lg border-2 border-blue-300 mb-6">
+            <div class="flex items-center gap-3">
+                <span id="header-avatar" class="text-4xl">🐰</span>
+                <div>
+                    <h3 id="header-name" class="font-black text-base text-slate-800">Bé Học Toán</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">Cấp <span id="header-level">1</span></span>
+                        <div class="w-20 bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div id="header-exp-bar" class="bg-emerald-400 h-full w-0 transition-all duration-300"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 text-amber-500 font-black text-lg bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+                <i class="fa-solid fa-star"></i>
+                <span id="header-stars">0</span>
+            </div>
+        </div>
+
+        <h2 class="text-2xl font-black text-slate-800 mb-4 text-center">Bé muốn học chủ đề nào?</h2>
+
+        <!-- Danh sách các chủ đề chính thức SGK Lớp 3 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md flex-1">
+            <!-- Cộng Trừ Phạm Vi 10.000 -->
+            <button onclick="startQuiz('cong-tru')" class="bg-gradient-to-r from-emerald-400 to-teal-500 text-white p-4 rounded-2xl text-left shadow-lg flex items-center justify-between border-b-4 border-teal-700 active:scale-95 transition-transform">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl bg-white/20 p-2.5 rounded-xl"><i class="fa-solid fa-calculator"></i></span>
+                    <div>
+                        <span class="block font-black text-lg">Cộng, Trừ</span>
+                        <span class="text-xs text-emerald-50 opacity-90">Phạm vi 10 000 & Cộng nhớ</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
+            </button>
+
+            <!-- Bảng nhân / chia -->
+            <button onclick="startQuiz('nhan-chia')" class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl text-left shadow-lg flex items-center justify-between border-b-4 border-orange-700 active:scale-95 transition-transform">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl bg-white/20 p-2.5 rounded-xl"><i class="fa-solid fa-circle-xmark"></i></span>
+                    <div>
+                        <span class="block font-black text-lg">Bảng Nhân & Chia</span>
+                        <span class="text-xs text-amber-50 opacity-90">Phép nhân, phép chia từ 2 đến 9</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
+            </button>
+
+            <!-- Biểu thức tính toán -->
+            <button onclick="startQuiz('bieu-thuc')" class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-2xl text-left shadow-lg flex items-center justify-between border-b-4 border-indigo-800 active:scale-95 transition-transform">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl bg-white/20 p-2.5 rounded-xl"><i class="fa-solid fa-layer-group"></i></span>
+                    <div>
+                        <span class="block font-black text-lg">Giá Trị Biểu Thức</span>
+                        <span class="text-xs text-purple-50 opacity-90">Phép tính có ngoặc, nhân chia trước</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
+            </button>
+
+            <!-- Đồng hồ và Lịch -->
+            <button onclick="startQuiz('dong-ho')" class="bg-gradient-to-r from-rose-400 to-pink-500 text-white p-4 rounded-2xl text-left shadow-lg flex items-center justify-between border-b-4 border-pink-700 active:scale-95 transition-transform">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl bg-white/20 p-2.5 rounded-xl"><i class="fa-solid fa-clock"></i></span>
+                    <div>
+                        <span class="block font-black text-lg">Đồng Hồ & Lịch</span>
+                        <span class="text-xs text-rose-50 opacity-90">Xem giờ chính xác, ngày tháng năm</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
+            </button>
+
+            <!-- Hình học lớp 3 -->
+            <button onclick="startQuiz('hinh-hoc')" class="bg-gradient-to-r from-sky-400 to-blue-500 text-white p-4 rounded-2xl text-left shadow-lg flex items-center justify-between border-b-4 border-blue-700 active:scale-95 transition-transform">
+                <div class="flex items-center gap-4">
+                    <span class="text-4xl bg-white/20 p-2.5 rounded-xl"><i class="fa-solid fa-shapes"></i></span>
+                    <div>
+                        <span class="block font-black text-lg">Hình Học Lớp 3</span>
+                        <span class="text-xs text-sky-50 opacity-90">Tính chu vi, diện tích chữ nhật, vuông</span>
+                    </div>
+                </div>
+                <i class="fa-solid fa-circle-chevron-right text-2xl"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH CHƠI / LUYỆN TẬP -->
+    <div id="screen-quiz" class="pop-in flex-1 flex flex-col justify-between items-center px-4 py-4 z-10 hidden w-full max-w-md mx-auto">
+        <!-- Thanh trạng thái câu hỏi -->
+        <div class="w-full bg-white/90 rounded-2xl p-3 flex justify-between items-center shadow-md mb-4 border border-blue-200">
+            <button onclick="backToTopics()" class="text-slate-500 font-bold hover:text-rose-500 active:scale-95 flex items-center gap-1">
+                <i class="fa-solid fa-chevron-left"></i> Trở về
+            </button>
+            <div class="font-extrabold text-blue-600 text-lg">
+                Câu <span id="current-question-index">1</span>/5
+            </div>
+            <div class="flex items-center gap-1 text-emerald-500 font-bold">
+                <i class="fa-solid fa-heart text-rose-500"></i>
+                <span id="streak-count">0</span>
+            </div>
+        </div>
+
+        <!-- Khung hiển thị câu hỏi -->
+        <div class="w-full bg-white/95 rounded-3xl p-6 shadow-xl border-4 border-blue-400 flex flex-col justify-center items-center flex-1 my-2 min-h-[180px] relative">
+            <div id="avatar-helper" class="absolute -top-10 left-4 text-5xl filter drop-shadow">🐰</div>
+            
+            <!-- Câu hỏi chữ -->
+            <p id="quiz-instruction" class="text-slate-500 font-extrabold text-sm uppercase tracking-wider mb-2 text-center"></p>
+            <h2 id="quiz-question-text" class="text-3xl font-black text-center text-slate-800 leading-normal px-2"></h2>
+            
+            <!-- Vùng tương tác hình học/đồng hồ tùy chọn -->
+            <div id="quiz-visual-area" class="w-full mt-4 flex justify-center"></div>
+        </div>
+
+        <!-- 4 Đáp án lựa chọn -->
+        <div class="w-full grid grid-cols-2 gap-3 mt-4">
+            <button onclick="checkAnswer(0)" id="btn-opt-0" class="option-btn bg-white hover:bg-amber-50 text-slate-800 border-b-4 border-slate-300 rounded-2xl p-4 font-black text-xl shadow-md transition-all active:scale-95 flex justify-center items-center h-20 text-center"></button>
+            <button onclick="checkAnswer(1)" id="btn-opt-1" class="option-btn bg-white hover:bg-amber-50 text-slate-800 border-b-4 border-slate-300 rounded-2xl p-4 font-black text-xl shadow-md transition-all active:scale-95 flex justify-center items-center h-20 text-center"></button>
+            <button onclick="checkAnswer(2)" id="btn-opt-2" class="option-btn bg-white hover:bg-amber-50 text-slate-800 border-b-4 border-slate-300 rounded-2xl p-4 font-black text-xl shadow-md transition-all active:scale-95 flex justify-center items-center h-20 text-center"></button>
+            <button onclick="checkAnswer(3)" id="btn-opt-3" class="option-btn bg-white hover:bg-amber-50 text-slate-800 border-b-4 border-slate-300 rounded-2xl p-4 font-black text-xl shadow-md transition-all active:scale-95 flex justify-center items-center h-20 text-center"></button>
+        </div>
+    </div>
+
+    <!-- MÀN HÌNH HOÀN THÀNH (Báo cáo kết quả) -->
+    <div id="screen-result" class="pop-in flex-1 flex flex-col justify-center items-center px-4 py-8 z-10 hidden">
+        <div class="bg-white/95 rounded-3xl p-6 shadow-2xl max-w-md w-full text-center border-4 border-emerald-400">
+            <div class="text-6xl mb-4">🏆</div>
+            <h1 class="text-3xl font-black text-emerald-600 mb-1">Xuất Sắc!</h1>
+            <p id="result-greeting" class="text-slate-600 font-bold mb-6">Bé đã hoàn thành xuất sắc thử thách.</p>
+
+            <div class="grid grid-cols-2 gap-3 mb-6">
+                <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+                    <span class="block text-xs text-slate-500 font-bold uppercase">Trả lời đúng</span>
+                    <span id="result-score" class="text-2xl font-black text-emerald-600">5/5</span>
+                </div>
+                <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                    <span class="block text-xs text-slate-500 font-bold uppercase">Ngôi sao nhận</span>
+                    <span id="result-stars" class="text-2xl font-black text-amber-500">+10 <i class="fa-solid fa-star"></i></span>
+                </div>
+            </div>
+
+            <!-- Thanh kinh nghiệm lên cấp -->
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6">
+                <span class="block text-xs text-slate-500 font-bold uppercase mb-2">Tiến trình của người bạn đồng hành</span>
+                <div class="flex items-center gap-3">
+                    <span id="result-avatar" class="text-3xl">🐰</span>
+                    <div class="flex-1">
+                        <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                            <span>Cấp <span id="result-level">1</span></span>
+                            <span><span id="result-exp-text">0/100</span> EXP</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                            <div id="result-exp-bar" class="bg-emerald-400 h-full w-0 transition-all duration-500"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="backToTopics()" class="w-full bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-500 hover:to-teal-600 text-white font-black text-lg py-4 px-6 rounded-2xl shadow-lg shadow-emerald-500/20 transform transition active:scale-95">
+                    HỌC TIẾP CHỦ ĐỀ KHÁC <i class="fa-solid fa-chevron-right ml-1"></i>
+                </button>
+                <button onclick="restartApp()" class="text-slate-500 font-extrabold hover:text-slate-800 py-2">
+                    <i class="fa-solid fa-arrows-rotate mr-1"></i> Đăng ký tên khác
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer bản quyền thân thiện -->
+    <footer class="w-full text-center py-4 text-xs font-bold text-slate-600 z-10 bg-white/20 backdrop-blur-sm border-t border-white/20">
+        Toán Lớp 3 - Phiên bản nâng cấp v2.0 • Sáng tạo cho Trẻ em
+    </footer>
+
+    <!-- Logic JavaScript của ứng dụng -->
+    <script>
+        // --- 1. QUẢN LÝ TRẠNG THÁI (STATE) ---
+        let state = {
+            playerName: "Bé Học Toán",
+            character: "rabbit", // rabbit, monkey, bear
+            level: 1,
+            exp: 0,
+            stars: 0,
+            currentTopic: "",
+            currentQuestionIdx: 0,
+            score: 0,
+            streak: 0,
+            quizList: []
+        };
+
+        const AVATARS = {
+            rabbit: "🐰",
+            monkey: "🐵",
+            bear: "🐻"
+        };
+
+        // Khởi tạo AudioContext (để tạo hiệu ứng âm thanh mà không cần mạng)
+        let audioCtx = null;
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        // Hàm phát âm thanh Beep đơn giản
+        function playSound(type) {
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'correct') {
+                    // Âm thanh thánh thót khi trả lời đúng
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.4);
+                } else if (type === 'wrong') {
+                    // Âm thanh trầm đục khi trả lời sai
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'levelup') {
+                    // Âm thanh hoành tráng khi tăng cấp
+                    osc.type = 'triangle';
+                    const scale = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50];
+                    scale.forEach((freq, idx) => {
+                        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+                    });
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.8);
+                }
+            } catch (e) {
+                console.log("Audio API not supported or user gesture needed");
+            }
+        }
+
+        // --- 2. HỆ THỐNG PHÁT SINH CÂU HỎI TOÁN LỚP 3 ---
+        function generateQuestions(topic, count = 5) {
+            let questions = [];
+            for (let i = 0; i < count; i++) {
+                let q = {};
+                if (topic === 'cong-tru') {
+                    // Phép cộng trừ trong phạm vi 10 000
+                    let type = Math.random() > 0.5 ? 'cộng' : 'trừ';
+                    if (type === 'cộng') {
+                        let a = Math.floor(Math.random() * 5000) + 1000;
+                        let b = Math.floor(Math.random() * 3999) + 1000;
+                        q.question = `${a} + ${b} = ?`;
+                        q.correct = a + b;
+                    } else {
+                        let a = Math.floor(Math.random() * 7000) + 3000;
+                        let b = Math.floor(Math.random() * (a - 1000)) + 500;
+                        q.question = `${a} - ${b} = ?`;
+                        q.correct = a - b;
+                    }
+                    q.instruction = "Tính toán trong phạm vi 10 000";
+                    q.type = 'math';
+                } 
+                else if (topic === 'nhan-chia') {
+                    // Bảng nhân, bảng chia từ 2 đến 9
+                    let type = Math.random() > 0.5 ? 'nhân' : 'chia';
+                    let multiplier = Math.floor(Math.random() * 8) + 2; // 2 -> 9
+                    let value = Math.floor(Math.random() * 9) + 2; // 2 -> 10
+                    if (type === 'nhân') {
+                        q.question = `${multiplier} x ${value} = ?`;
+                        q.correct = multiplier * value;
+                    } else {
+                        let product = multiplier * value;
+                        q.question = `${product} : ${multiplier} = ?`;
+                        q.correct = value;
+                    }
+                    q.instruction = "Bảng Nhân & Bảng Chia (2 - 9)";
+                    q.type = 'math';
+                } 
+                else if (topic === 'bieu-thuc') {
+                    // Biểu thức tính toán (Có ngoặc hoặc không)
+                    let subType = Math.floor(Math.random() * 3);
+                    if (subType === 0) {
+                        // Nhân trước cộng sau
+                        let a = Math.floor(Math.random() * 50) + 10;
+                        let b = Math.floor(Math.random() * 8) + 2;
+                        let c = Math.floor(Math.random() * 9) + 2;
+                        q.question = `${a} + ${b} x ${c} = ?`;
+                        q.correct = a + (b * c);
+                    } else if (subType === 1) {
+                        // Có dấu ngoặc đơn
+                        let a = Math.floor(Math.random() * 20) + 5;
+                        let b = Math.floor(Math.random() * 15) + 5;
+                        let c = Math.floor(Math.random() * 5) + 2;
+                        q.question = `(${a} + ${b}) x ${c} = ?`;
+                        q.correct = (a + b) * c;
+                    } else {
+                        // Chia trước trừ sau
+                        let b = Math.floor(Math.random() * 8) + 2;
+                        let c = Math.floor(Math.random() * 8) + 2;
+                        let product = b * c;
+                        let a = Math.floor(Math.random() * 50) + product + 10;
+                        q.question = `${a} - ${product} : ${b} = ?`;
+                        q.correct = a - c;
+                    }
+                    q.instruction = "Tính Giá Trị Biểu Thức";
+                    q.type = 'math';
+                } 
+                else if (topic === 'dong-ho') {
+                    // Câu hỏi xem giờ / thời gian lịch
+                    let subType = Math.random() > 0.5 ? 'đồng hồ' : 'lịch';
+                    if (subType === 'đồng hồ') {
+                        let hour = Math.floor(Math.random() * 12) + 1;
+                        let minute = [0, 5, 15, 30, 45][Math.floor(Math.random() * 5)];
+                        q.question = `Đồng hồ này đang chỉ mấy giờ?`;
+                        let mStr = minute === 0 ? "đúng" : `${minute} phút`;
+                        q.correct_str = `${hour} giờ ${mStr}`;
+                        q.instruction = "Thử tài xem đồng hồ";
+                        q.type = 'clock';
+                        q.clockData = { hour: hour, minute: minute };
+                    } else {
+                        let monthsWith31 = ["Tháng 1", "Tháng 3", "Tháng 5", "Tháng 7", "Tháng 8", "Tháng 10", "Tháng 12"];
+                        let is31 = Math.random() > 0.5;
+                        if (is31) {
+                            let m = monthsWith31[Math.floor(Math.random() * monthsWith31.length)];
+                            q.question = `Một năm học có bao nhiêu ngày trong ${m}?`;
+                            q.correct = 31;
+                        } else {
+                            q.question = `Tháng 4 có bao nhiêu ngày hả bé?`;
+                            q.correct = 30;
+                        }
+                        q.instruction = "Xem Lịch & Ngày Tháng";
+                        q.type = 'math';
+                    }
+                } 
+                else if (topic === 'hinh-hoc') {
+                    // Hình học lớp 3 (chu vi/diện tích)
+                    let subType = Math.random() > 0.5 ? 'chu vi' : 'diện tích';
+                    let isSquare = Math.random() > 0.5;
+                    if (isSquare) {
+                        let side = Math.floor(Math.random() * 8) + 2;
+                        if (subType === 'chu vi') {
+                            q.question = `Một mảnh vườn hình vuông có cạnh là ${side} cm. Tính chu vi mảnh vườn đó.`;
+                            q.correct = side * 4;
+                            q.correct_str = `${side * 4} cm`;
+                        } else {
+                            q.question = `Tấm bìa hình vuông có cạnh là ${side} cm. Tính diện tích tấm bìa.`;
+                            q.correct = side * side;
+                            q.correct_str = `${side * side} cm²`;
+                        }
+                    } else {
+                        let width = Math.floor(Math.random() * 6) + 2;
+                        let length = width + Math.floor(Math.random() * 5) + 2;
+                        if (subType === 'chu vi') {
+                            q.question = `Tính chu vi hình chữ nhật có chiều dài ${length} cm, chiều rộng ${width} cm.`;
+                            q.correct = (length + width) * 2;
+                            q.correct_str = `${(length + width) * 2} cm`;
+                        } else {
+                            q.question = `Tính diện tích hình chữ nhật có chiều dài ${length} cm, chiều rộng ${width} cm.`;
+                            q.correct = length * width;
+                            q.correct_str = `${length * width} cm²`;
+                        }
+                    }
+                    q.instruction = "Hình học lớp 3";
+                    q.type = 'math';
+                }
+
+                // Thiết kế đáp án nhiễu
+                let options = [];
+                let correctVal = q.correct_str ? q.correct_str : q.correct;
+                options.push(correctVal);
+
+                while (options.length < 4) {
+                    let fake;
+                    if (q.correct_str) {
+                        if (q.type === 'clock') {
+                            let fh = Math.floor(Math.random() * 12) + 1;
+                            let fm = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+                            let fmStr = fm === 0 ? "đúng" : `${fm} phút`;
+                            fake = `${fh} giờ ${fmStr}`;
+                        } else {
+                            // Tạo nhiễu cho hình học
+                            let offset = (Math.floor(Math.random() * 5) + 1) * (Math.random() > 0.5 ? 1 : -1);
+                            let unit = correctVal.includes("cm²") ? "cm²" : "cm";
+                            let numeric = parseInt(correctVal);
+                            fake = `${Math.max(2, numeric + offset)} ${unit}`;
+                        }
+                    } else {
+                        let offset = (Math.floor(Math.random() * 8) + 1) * (Math.random() > 0.5 ? 1 : -1);
+                        fake = q.correct + offset;
+                        if (fake < 0) fake = q.correct + Math.abs(offset) + 2;
+                    }
+
+                    if (!options.includes(fake)) {
+                        options.push(fake);
+                    }
+                }
+
+                // Trộn ngẫu nhiên các đáp án
+                options.sort(() => Math.random() - 0.5);
+                q.options = options;
+                q.correctAnswerIndex = options.indexOf(correctVal);
+                questions.push(q);
+            }
+            return questions;
+        }
+
+        // --- 3. ĐIỀU HƯỚNG MÀN HÌNH ---
+        function selectCharacter(char) {
+            state.character = char;
+            document.querySelectorAll('.char-btn').forEach(btn => {
+                btn.classList.remove('border-emerald-400', 'border-amber-400', 'border-indigo-400', 'scale-105');
+            });
+            // Thêm viền nổi bật cho nhân vật được chọn
+            let color = char === 'rabbit' ? 'border-emerald-400' : (char === 'monkey' ? 'border-amber-400' : 'border-indigo-400');
+            event.currentTarget.classList.add(color, 'scale-105');
+            playSound('correct');
+        }
+
+        function saveCharacter() {
+            let nameInput = document.getElementById('player-name').value.trim();
+            if (nameInput !== "") {
+                state.playerName = nameInput;
+            }
+            
+            // Cập nhật lên giao diện
+            document.getElementById('header-name').innerText = state.playerName;
+            document.getElementById('header-avatar').innerText = AVATARS[state.character];
+            document.getElementById('avatar-helper').innerText = AVATARS[state.character];
+            document.getElementById('result-avatar').innerText = AVATARS[state.character];
+            
+            updateLevelBar();
+
+            // Chuyển màn hình
+            document.getElementById('screen-character').classList.add('hidden');
+            document.getElementById('screen-topics').classList.remove('hidden');
+            getAudioContext(); // kích hoạt sớm âm thanh
+        }
+
+        function updateLevelBar() {
+            document.getElementById('header-level').innerText = state.level;
+            document.getElementById('header-stars').innerText = state.stars;
+            let percent = (state.exp % 100);
+            document.getElementById('header-exp-bar').style.width = percent + "%";
+        }
+
+        function startQuiz(topic) {
+            state.currentTopic = topic;
+            state.currentQuestionIdx = 0;
+            state.score = 0;
+            state.streak = 0;
+            state.quizList = generateQuestions(topic, 5);
+            
+            document.getElementById('screen-topics').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            
+            showQuestion();
+        }
+
+        function backToTopics() {
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-topics').classList.remove('hidden');
+            updateLevelBar();
+        }
+
+        function restartApp() {
+            state = {
+                playerName: "Bé Học Toán",
+                character: "rabbit",
+                level: 1,
+                exp: 0,
+                stars: 0,
+                currentTopic: "",
+                currentQuestionIdx: 0,
+                score: 0,
+                streak: 0,
+                quizList: []
+            };
+            document.getElementById('player-name').value = "";
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-character').classList.remove('hidden');
+        }
+
+        // --- 4. HIỂN THỊ CÂU HỎI VÀ TƯƠNG TÁC ---
+        function showQuestion() {
+            let currentQ = state.quizList[state.currentQuestionIdx];
+            document.getElementById('current-question-index').innerText = state.currentQuestionIdx + 1;
+            document.getElementById('streak-count').innerText = state.streak;
+            document.getElementById('quiz-instruction').innerText = currentQ.instruction;
+            document.getElementById('quiz-question-text').innerText = currentQ.question;
+            
+            // Xóa vùng vẽ hình/đồng hồ cũ
+            let visualArea = document.getElementById('quiz-visual-area');
+            visualArea.innerHTML = "";
+
+            // Vẽ đồng hồ nếu là câu hỏi xem giờ
+            if (currentQ.type === 'clock') {
+                visualArea.innerHTML = drawClockSVG(currentQ.clockData.hour, currentQ.clockData.minute);
+            }
+
+            // Gán đáp án vào các nút bấm
+            for (let i = 0; i < 4; i++) {
+                let btn = document.getElementById(`btn-opt-${i}`);
+                btn.innerText = currentQ.options[i];
+                btn.className = "option-btn bg-white hover:bg-amber-50 text-slate-800 border-b-4 border-slate-300 rounded-2xl p-4 font-black text-xl shadow-md transition-all active:scale-95 flex justify-center items-center h-20 text-center";
+                btn.disabled = false;
+            }
+        }
+
+        // Hàm vẽ đồng hồ kim sinh động bằng SVG
+        function drawClockSVG(hour, minute) {
+            let hrAngle = (hour * 30) + (minute * 0.5);
+            let minAngle = minute * 6;
+            return `
+                <svg width="150" height="150" viewBox="0 0 100 100" class="filter drop-shadow-md">
+                    <!-- Vòng tròn đồng hồ -->
+                    <circle cx="50" cy="50" r="45" stroke="#3b82f6" stroke-width="3" fill="#eff6ff" />
+                    <!-- Vạch chỉ giờ chính -->
+                    <line x1="50" y1="8" x2="50" y2="12" stroke="#1e3a8a" stroke-width="2" />
+                    <line x1="50" y1="92" x2="50" y2="88" stroke="#1e3a8a" stroke-width="2" />
+                    <line x1="8" y1="50" x2="12" y2="50" stroke="#1e3a8a" stroke-width="2" />
+                    <line x1="92" y1="50" x2="88" y2="50" stroke="#1e3a8a" stroke-width="2" />
+                    
+                    <!-- Kim Giờ màu xanh lá đậm -->
+                    <line x1="50" y1="50" x2="50" y2="28" stroke="#10b981" stroke-width="3" stroke-linecap="round" transform="rotate(${hrAngle} 50 50)" />
+                    <!-- Kim Phút màu đỏ nổi bật -->
+                    <line x1="50" y1="50" x2="50" y2="18" stroke="#ef4444" stroke-width="2.2" stroke-linecap="round" transform="rotate(${minAngle} 50 50)" />
+                    <!-- Tâm kim màu vàng tròn trịa -->
+                    <circle cx="50" cy="50" r="3" fill="#f59e0b" />
+                </svg>
+            `;
+        }
+
+        // --- 5. KIỂM TRA ĐÁP ÁN & HIỆU ỨNG ---
+        function checkAnswer(selectedIdx) {
+            let currentQ = state.quizList[state.currentQuestionIdx];
+            let buttons = document.querySelectorAll('.option-btn');
+            
+            // Vô hiệu hóa bấm tiếp
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (selectedIdx === currentQ.correctAnswerIndex) {
+                // Trả lời ĐÚNG
+                playSound('correct');
+                document.getElementById(`btn-opt-${selectedIdx}`).className = "option-btn bg-emerald-400 text-white border-b-4 border-emerald-600 rounded-2xl p-4 font-black text-xl shadow-md transition-all flex justify-center items-center h-20 text-center";
+                state.score++;
+                state.streak++;
+                state.stars += 2; // Cộng 2 sao cho mỗi câu đúng
+                state.exp += 15; // Cộng 15 kinh nghiệm
+            } else {
+                // Trả lời SAI
+                playSound('wrong');
+                document.getElementById(`btn-opt-${selectedIdx}`).className = "option-btn bg-rose-400 text-white border-b-4 border-rose-600 rounded-2xl p-4 font-black text-xl shadow-md transition-all flex justify-center items-center h-20 text-center";
+                // Show đáp án đúng cho bé nhận biết
+                document.getElementById(`btn-opt-${currentQ.correctAnswerIndex}`).className = "option-btn bg-emerald-400 text-white border-b-4 border-emerald-600 rounded-2xl p-4 font-black text-xl shadow-md transition-all flex justify-center items-center h-20 text-center";
+                state.streak = 0; // Đứt chuỗi đúng
+                state.exp += 5; // Trả lời sai vẫn khuyến khích cộng 5 kinh nghiệm
+            }
+
+            // Kiểm tra tăng cấp
+            let oldLevel = state.level;
+            state.level = Math.floor(state.exp / 100) + 1;
+            if (state.level > oldLevel) {
+                setTimeout(() => {
+                    playSound('levelup');
+                }, 500);
+            }
+
+            // Chờ 1.5 giây để bé kịp quan sát đáp án rồi qua câu mới
+            setTimeout(() => {
+                state.currentQuestionIdx++;
+                if (state.currentQuestionIdx < state.quizList.length) {
+                    showQuestion();
+                } else {
+                    showResultScreen();
+                }
+            }, 1600);
+        }
+
+        // --- 6. MÀN HÌNH KẾT QUẢ VÀ ĂN MỪNG ---
+        function showResultScreen() {
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            // Hiển thị nội dung
+            document.getElementById('result-greeting').innerText = `Chúc mừng ${state.playerName} đã hoàn thành thử thách Chủ đề này nhé!`;
+            document.getElementById('result-score').innerText = `${state.score}/5`;
+            
+            // Tính số sao thưởng thêm
+            let bonusStars = state.score * 2;
+            document.getElementById('result-stars').innerHTML = `+${bonusStars} <i class="fa-solid fa-star"></i>`;
+            
+            // Cập nhật cột EXP kết quả
+            document.getElementById('result-level').innerText = state.level;
+            document.getElementById('result-exp-text').innerText = `${state.exp % 100}/100`;
+            setTimeout(() => {
+                document.getElementById('result-exp-bar').style.width = (state.exp % 100) + "%";
+            }, 100);
+
+            // Bắn pháo hoa ăn mừng nếu đúng từ 4 câu trở lên
+            if (state.score >= 4) {
+                triggerConfetti();
+            }
+        }
+
+        // --- 7. HIỆU ỨNG PHÁO HOA ĂN MỪNG (CONFETTI) ---
+        let confettiActive = false;
+        let confettiArray = [];
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function createConfettiPiece() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height - canvas.height,
+                size: Math.random() * 8 + 5,
+                color: `hsl(${Math.random() * 360}, 90%, 60%)`,
+                speedX: Math.random() * 3 - 1.5,
+                speedY: Math.random() * 4 + 3,
+                rotation: Math.random() * 360,
+                rotationSpeed: Math.random() * 4 - 2
+            };
+        }
+
+        function updateConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < confettiArray.length; i++) {
+                let p = confettiArray[i];
+                p.y += p.speedY;
+                p.x += p.speedX;
+                p.rotation += p.rotationSpeed;
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                ctx.restore();
+
+                if (p.y > canvas.height) {
+                    confettiArray[i] = createConfettiPiece();
+                }
+            }
+            if (confettiActive) {
+                requestAnimationFrame(updateConfetti);
+            }
+        }
+
+        function triggerConfetti() {
+            canvas.classList.remove('hidden');
+            resizeCanvas();
+            confettiActive = true;
+            confettiArray = [];
+            for (let i = 0; i < 80; i++) {
+                confettiArray.push(createConfettiPiece());
+            }
+            updateConfetti();
+            
+            // Tự động tắt sau 5 giây
+            setTimeout(() => {
+                confettiActive = false;
+                canvas.classList.add('hidden');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 5000);
+        }
+
+        window.addEventListener('resize', () => {
+            if (confettiActive) resizeCanvas();
+        });
+    </script>
+</body>
+</html>
+
+```
 
