@@ -1,1 +1,54 @@
+name: Build Unsigned iOS IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-on-version: 18
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm install @capacitor/cli @capacitor/ios
+
+    - name: Initialize Capacitor iOS
+      run: |
+        npx cap add ios
+        npx cap sync
+
+    - name: Build Xcode Project (Unsigned)
+      run: |
+        xcodebuild -workspace ios/App/App.xcworkspace \
+                   -scheme App \
+                   -configuration Release \
+                   -sdk iphoneos \
+                   CONFIGURATION_BUILD_DIR=../build_output \
+                   CODE_SIGN_IDENTITY="" \
+                   CODE_SIGNING_REQUIRED=NO \
+                   CODE_SIGNING_ALLOWED=NO \
+                   clean build
+
+    - name: Package App into IPA
+      run: |
+        mkdir -p Payload
+        cp -r build_output/App.app Payload/
+        zip -r ToanLop3-unsigned.ipa Payload
+
+    - name: Upload Finished IPA as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ToanLop3-Unsigned-IPA
+        path: ToanLop3-unsigned.ipa
 
