@@ -32,25 +32,47 @@ jobs:
         if [ -f "index.html" ]; then
           cp index.html www/index.html
         fi
+        if [ ! -f "www/index.html" ]; then
+          echo "❌ LỖI: Không tìm thấy file index.html trong thư mục gốc hoặc thư mục www!"
+          exit 1
+        fi
 
     - name: Add iOS Platform
       run: |
         npx cap add ios || true
         npx cap sync ios
 
-    # GỌI BỘ CÔNG CỤ TỪ REPOSITORY IOS-BUILD-ACTION-FORK CỦA BẠN ĐỂ BIÊN DỊCH
-    - name: Build Unsigned IPA using Custom Action
-      uses: tranhtiepxuc1-creator/ios-build-action-fork@main
-      with:
-        workspace-path: ios/App/App.xcworkspace
-        build-combined: true
-        export-method: ad-hoc
+    - name: Install Pods and Setup Environment
+      run: |
+        cd ios/App
+        # Nạp framework 'Capacitor' trực tiếp về máy ảo để xử lý lỗi biên dịch code
+        pod install
+        
+        # Cấu hình bỏ qua khâu kiểm tra tài khoản Apple Developer và Provisioning Profile
+        echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
+        sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
+        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
+        sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj || true
+
+    - name: Build Xcode Project (Real Device Unsigned)
+      run: |
+        # Biên dịch ứng dụng dựa trên cấu trúc iphoneos dành cho thiết bị thật
+        xcodebuild -workspace ios/App/App.xcworkspace \
+                   -scheme App \
+                   -configuration Release \
+                   -sdk iphoneos \
+                   CODE_SIGNING_ALLOWED=NO \
+                   CODE_SIGNING_REQUIRED=NO \
+                   CODE_SIGN_IDENTITY="" \
+                   PRODUCT_BUNDLE_IDENTIFIER="com.vietnamedu.toanlop3" \
+                   CONFIGURATION_BUILD_DIR=../build_output \
+                   clean build
 
     - name: Package App into Proper Unsigned IPA
       run: |
+        # Tạo Payload đóng gói thủ công chuẩn cấu trúc iOS để cài ngoài qua TrollStore/Esign
         mkdir -p Payload
-        # Lấy file .app đã được Custom Action xử lý sạch lỗi chứng chỉ đưa vào đóng gói
-        cp -r ios/App/build/Release-iphoneos/App.app Payload/ 2>/dev/null || cp -r ios/build_output/App.app Payload/ || cp -r build_output/App.app Payload/
+        cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
         zip -r ToanLop3-unsigned.ipa Payload
 
     - name: Upload Finished IPA as Artifact
