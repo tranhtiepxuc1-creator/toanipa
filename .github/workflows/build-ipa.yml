@@ -14,7 +14,7 @@ jobs:
 
     steps:
     - name: Checkout Source Code
-      [span_1](start_span)uses: actions/checkout@v4[span_1](end_span)
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -23,8 +23,8 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        [span_2](start_span)npm install[span_2](end_span)
-        [span_3](start_span)npm install @capacitor/cli @capacitor/ios[span_3](end_span)
+        npm install
+        npm install @capacitor/cli @capacitor/ios
 
     - name: Prepare Web Production Directory
       run: |
@@ -36,28 +36,24 @@ jobs:
     - name: Initialize Capacitor iOS
       run: |
         if [ ! -d "ios" ]; then
-          [span_4](start_span)npx cap add ios[span_4](end_span)
+          npx cap add ios
         fi
-        [span_5](start_span)npx cap sync ios[span_5](end_span)
+        npx cap sync ios
 
-    - name: Install CocoaPods Dependencies
+    - name: Bypass Code Sign and Install Pods
       run: |
-        # Lệnh cực kỳ quan trọng để kéo framework 'Capacitor' về cho Xcode nhận diện
         cd ios/App
+        # [span_0](start_span)Chạy pod install để nạp framework Capacitor[span_0](end_span)
         pod install
-
-    - name: Bypass Apple Code Signing Requirements
-      run: |
-        cd ios/App
-        echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig 2>/dev/null || true
         
-        sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj
-        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj
-        sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj
+        # [span_1](start_span)Ép cấu hình xcode không check Provisioning Profile và Certificate[span_1](end_span)
+        echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
+        sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
+        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
+        sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj || true
 
     - name: Build Xcode Project (Real Device Unsigned)
       run: |
-        # Đảm bảo truyền tham số build thông qua Workspace để nhận diện Pods
         xcodebuild -workspace ios/App/App.xcworkspace \
                    -scheme App \
                    -configuration Release \
@@ -67,13 +63,13 @@ jobs:
                    CODE_SIGN_IDENTITY="" \
                    PRODUCT_BUNDLE_IDENTIFIER="com.vietnamedu.toanlop3" \
                    CONFIGURATION_BUILD_DIR=../build_output \
-                   [span_6](start_span)clean build[span_6](end_span)
+                   clean build
 
     - name: Package App into Proper Unsigned IPA
       run: |
-        [span_7](start_span)mkdir -p Payload[span_7](end_span)
-        [span_8](start_span)cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/[span_8](end_span)
-        [span_9](start_span)zip -r ToanLop3-unsigned.ipa Payload[span_9](end_span)
+        mkdir -p Payload
+        cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
+        zip -r ToanLop3-unsigned.ipa Payload
 
     - name: Upload Finished IPA as Artifact
       uses: actions/upload-artifact@v4
