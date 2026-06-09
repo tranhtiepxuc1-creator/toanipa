@@ -1,10 +1,10 @@
 {
   "name": "toan-lop-3",
   "version": "2.0.0",
-  "description": "Toan Lop 3 Mobile App",
+  "description": "Toan Lops 3 Mobile App",
   "main": "index.js",
   "scripts": {
-    "build": "echo 'No build step needed for pure HTML'"
+    "build": "echo 'No build step needed for pure html'"
   },
   "dependencies": {
     "@capacitor/core": "^5.0.0",
@@ -14,4 +14,3 @@
     "@capacitor/cli": "^5.0.0"
   }
 }
-
