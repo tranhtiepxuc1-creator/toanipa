@@ -43,38 +43,37 @@ jobs:
         cd ios/App
         pod install
 
-    - name: Advanced Code Sign Bypass (Ad-Hoc Generation)
+    - name: Advanced Code Sign Bypass
       run: |
         cd ios/App
-        # Ghi đè cấu hình ép toàn bộ dự án và các thư viện liên kết chuyển sang chế độ không chứng chỉ hệ thống
         echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
         echo "CODE_SIGNING_REQUIRED = NO" >> Names.xcconfig || true
         
-        # Can thiệp sâu cấu trúc project để vô hiệu hóa cổng chặn Signing quy định trên Xcode máy chủ
         sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
         sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
         sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj || true
 
-    - name: Build Xcode Project (Real Device Unsigned)
+    - name: Build Xcode Archive (Bypass Export Checks)
       run: |
-        # Biên dịch đồng bộ truyền lệnh dập tắt khâu định danh ở cả tầng dự án chính lẫn tầng thư viện Pods
+        # Tuyệt chiêu đóng gói thành tệp .xcarchive để vượt qua mọi rào cản check chữ ký của Apple
         xcodebuild -workspace ios/App/App.xcworkspace \
                    -scheme App \
                    -configuration Release \
                    -sdk iphoneos \
+                   -archivePath ios/App/ToanLop3.xcarchive \
                    CODE_SIGNING_ALLOWED=NO \
                    CODE_SIGNING_REQUIRED=NO \
                    CODE_SIGN_IDENTITY="" \
-                   PRODUCT_BUNDLE_IDENTIFIER="com.vietnamedu.toanlop3" \
-                   CONFIGURATION_BUILD_DIR=../build_output \
-                   COMPILER_INDEX_STORE_ENABLE=NO \
-                   clean build
+                   clean archive
 
-    - name: Package App into Proper Unsigned IPA
+    - name: Extract App and Package into Proper Unsigned IPA
       run: |
         mkdir -p Payload
-        # Sao chép gói dữ liệu ứng dụng gốc chuẩn hóa kiến trúc arm64
-        cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
+        
+        # Trích xuất trực tiếp file App.app xịn từ trong gói Archive ra để đóng gói
+        cp -r ios/App/ToanLop3.xcarchive/Products/Applications/App.app Payload/
+        
+        # Nén thành file IPA tiêu chuẩn cho TrollStore/Esign
         zip -r ToanLop3-unsigned.ipa Payload
 
     - name: Upload Finished IPA as Artifact
