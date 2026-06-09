@@ -1,57 +1,60 @@
-name: Build IPA
+name: Build Unsigned iOS IPA
 
 on:
+  push:
+    branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  build:
+  build-ios:
     runs-on: macos-latest
 
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
+    - name: Install Dependencies
+      run: |
+        npm install
+        npm install @capacitor/cli @capacitor/ios
 
-      - name: Create WWW Folder
-        run: |
-          mkdir -p www
+    - name: Prepare Web Production Directory
+      run: |
+        mkdir -p www
+        if [ -f "index.html" ]; then
           cp index.html www/index.html
+        fi
 
-      - name: Add iOS Platform
-        run: |
-          npx cap add ios || true
-          npx cap sync ios
+    - name: Add iOS Platform
+      run: |
+        npx cap add ios || true
+        npx cap sync ios
 
-      - name: Install Pods
-        run: |
-          cd ios/App
-          pod install
+    # GỌI BỘ CÔNG CỤ TỪ REPOSITORY IOS-BUILD-ACTION-FORK CỦA BẠN ĐỂ BIÊN DỊCH
+    - name: Build Unsigned IPA using Custom Action
+      uses: tranhtiepxuc1-creator/ios-build-action-fork@main
+      with:
+        workspace-path: ios/App/App.xcworkspace
+        build-combined: true
+        export-method: ad-hoc
 
-      - name: Build Unsigned App
-        run: |
-          xcodebuild \
-          -workspace ios/App/App.xcworkspace \
-          -scheme App \
-          -sdk iphoneos \
-          -configuration Release \
-          CODE_SIGNING_ALLOWED=NO \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGN_IDENTITY="" \
-          CONFIGURATION_BUILD_DIR=build \
-          clean build
+    - name: Package App into Proper Unsigned IPA
+      run: |
+        mkdir -p Payload
+        # Lấy file .app đã được Custom Action xử lý sạch lỗi chứng chỉ đưa vào đóng gói
+        cp -r ios/App/build/Release-iphoneos/App.app Payload/ 2>/dev/null || cp -r ios/build_output/App.app Payload/ || cp -r build_output/App.app Payload/
+        zip -r ToanLop3-unsigned.ipa Payload
 
-      - name: Package IPA
-        run: |
-          mkdir Payload
-          cp -R build/App.app Payload/
-          zip -r ToanLop3.ipa Payload
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ToanLop3-IPA
-          path: ToanLop3.ipa
+    - name: Upload Finished IPA as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ToanLop3-Unsigned-IPA
+        path: ToanLop3-unsigned.ipa
