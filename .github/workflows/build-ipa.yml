@@ -38,18 +38,16 @@ jobs:
         npx cap add ios || true
         npx cap sync ios
 
-    # TỰ ĐỘNG TẢI SCRIPT CHUẨN TỪ KHO XILIN/IOS-BUILD-SCRIPT VỀ CHẠY
-    - name: Load and Run Xilin Build Script
+    - name: Install Pods Dependencies
       run: |
-        # Tải trực tiếp script build chuẩn của xilin về máy ảo
-        curl -FSsl https://raw.githubusercontent.com/xilin/ios-build-script/master/build.sh -o xilin_build.sh
-        chmod +x xilin_build.sh
-        
-        # Cài đặt cấu hình môi trường CocoaPods cho dự án
+        # Sửa lỗi cú pháp curl bằng cách gọi trực tiếp lệnh cài đặt cục bộ an toàn
         cd ios/App
         pod install
-        
-        # Sửa file cấu hình Xcode gốc để ép chế độ Unsigned (Ký lụi)
+
+    - name: Bypass Code Sign Requirements
+      run: |
+        cd ios/App
+        # Ép cấu hình Xcode chuyển sang chế độ thủ công dập tắt khâu kiểm tra Provisioning Profile
         echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
         sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
         sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
