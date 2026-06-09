@@ -1,78 +1,57 @@
-name: Build Unsigned iOS IPA
+name: Build IPA
 
 on:
-  push:
-    branches: [ main, master ]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  build-ios:
+  build:
     runs-on: macos-latest
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-    - name: Install Dependencies
-      run: |
-        npm install
-        npm install @capacitor/cli @capacitor/ios
+      - name: Install Dependencies
+        run: npm install
 
-    - name: Prepare Web Production Directory
-      run: |
-        mkdir -p www
-        if [ -f "index.html" ]; then
+      - name: Create WWW Folder
+        run: |
+          mkdir -p www
           cp index.html www/index.html
-        fi
 
-    - name: Initialize Capacitor iOS
-      run: |
-        if [ ! -d "ios" ]; then
-          npx cap add ios
-        fi
-        npx cap sync ios
+      - name: Add iOS Platform
+        run: |
+          npx cap add ios || true
+          npx cap sync ios
 
-    - name: Bypass Code Sign and Install Pods
-      run: |
-        cd ios/App
-        # [span_0](start_span)Chạy pod install để nạp framework Capacitor[span_0](end_span)
-        pod install
-        
-        # [span_1](start_span)Ép cấu hình xcode không check Provisioning Profile và Certificate[span_1](end_span)
-        echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
-        sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
-        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
-        sed -i '' 's/CODE_SIGN_IDENTITY = "iPhone Developer";/CODE_SIGN_IDENTITY = "";/g' App.xcodeproj/project.pbxproj || true
+      - name: Install Pods
+        run: |
+          cd ios/App
+          pod install
 
-    - name: Build Xcode Project (Real Device Unsigned)
-      run: |
-        xcodebuild -workspace ios/App/App.xcworkspace \
-                   -scheme App \
-                   -configuration Release \
-                   -sdk iphoneos \
-                   CODE_SIGNING_ALLOWED=NO \
-                   CODE_SIGNING_REQUIRED=NO \
-                   CODE_SIGN_IDENTITY="" \
-                   PRODUCT_BUNDLE_IDENTIFIER="com.vietnamedu.toanlop3" \
-                   CONFIGURATION_BUILD_DIR=../build_output \
-                   clean build
+      - name: Build Unsigned App
+        run: |
+          xcodebuild \
+          -workspace ios/App/App.xcworkspace \
+          -scheme App \
+          -sdk iphoneos \
+          -configuration Release \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGN_IDENTITY="" \
+          CONFIGURATION_BUILD_DIR=build \
+          clean build
 
-    - name: Package App into Proper Unsigned IPA
-      run: |
-        mkdir -p Payload
-        cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
-        zip -r ToanLop3-unsigned.ipa Payload
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          cp -R build/App.app Payload/
+          zip -r ToanLop3.ipa Payload
 
-    - name: Upload Finished IPA as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ToanLop3-Unsigned-IPA
-        path: ToanLop3-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ToanLop3-IPA
+          path: ToanLop3.ipa
