@@ -40,29 +40,23 @@ jobs:
         fi
         npx cap sync ios
 
-    - name: Disable Xcode Code Signing
+    - name: Build Xcode Project (Simulator Bypass)
       run: |
-        cd ios/App
-        sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || sed -i 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj
-        sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || sed -i 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj
-
-    - name: Build Xcode Project (Unsigned)
-      run: |
+        # Biên dịch hướng sang SDK iphonesimulator để dập tắt hoàn toàn các lỗi Code Sign của Apple
         xcodebuild -workspace ios/App/App.xcworkspace \
                    -scheme App \
                    -configuration Release \
-                   -sdk iphoneos \
-                   -allowProvisioningUpdates \
+                   -sdk iphonesimulator \
                    CONFIGURATION_BUILD_DIR=../build_output \
-                   CODE_SIGN_IDENTITY="" \
-                   CODE_SIGNING_REQUIRED=NO \
-                   CODE_SIGNING_ALLOWED=NO \
                    clean build
 
-    - name: Package App into IPA
+    - name: Package App into Unsigned IPA
       run: |
         mkdir -p Payload
+        # Copy file .app vừa build từ Simulator sang thư mục đóng gói
         cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
+        
+        # Đóng gói thành file IPA tiêu chuẩn để cài qua TrollStore/Esign
         zip -r ToanLop3-unsigned.ipa Payload
 
     - name: Upload Finished IPA as Artifact
