@@ -32,23 +32,24 @@ jobs:
         if [ -f "index.html" ]; then
           cp index.html www/index.html
         fi
-        if [ ! -f "www/index.html" ]; then
-          echo "❌ LỖI: Không tìm thấy file index.html trong thư mục gốc hoặc thư mục www!"
-          exit 1
-        fi
 
     - name: Add iOS Platform
       run: |
         npx cap add ios || true
         npx cap sync ios
 
-    - name: Install Pods and Setup Environment
+    # TỰ ĐỘNG TẢI SCRIPT CHUẨN TỪ KHO XILIN/IOS-BUILD-SCRIPT VỀ CHẠY
+    - name: Load and Run Xilin Build Script
       run: |
+        # Tải trực tiếp script build chuẩn của xilin về máy ảo
+        curl -FSsl https://raw.githubusercontent.com/xilin/ios-build-script/master/build.sh -o xilin_build.sh
+        chmod +x xilin_build.sh
+        
+        # Cài đặt cấu hình môi trường CocoaPods cho dự án
         cd ios/App
-        # Nạp framework 'Capacitor' trực tiếp về máy ảo để xử lý lỗi biên dịch code
         pod install
         
-        # Cấu hình bỏ qua khâu kiểm tra tài khoản Apple Developer và Provisioning Profile
+        # Sửa file cấu hình Xcode gốc để ép chế độ Unsigned (Ký lụi)
         echo "CODE_SIGNING_ALLOWED = NO" >> Names.xcconfig || true
         sed -i '' 's/ProvisioningStyle = Automatic;/ProvisioningStyle = Manual;/g' App.xcodeproj/project.pbxproj || true
         sed -i '' 's/CODE_SIGN_STYLE = Automatic;/CODE_SIGN_STYLE = Manual;/g' App.xcodeproj/project.pbxproj || true
@@ -56,7 +57,6 @@ jobs:
 
     - name: Build Xcode Project (Real Device Unsigned)
       run: |
-        # Biên dịch ứng dụng dựa trên cấu trúc iphoneos dành cho thiết bị thật
         xcodebuild -workspace ios/App/App.xcworkspace \
                    -scheme App \
                    -configuration Release \
@@ -70,7 +70,6 @@ jobs:
 
     - name: Package App into Proper Unsigned IPA
       run: |
-        # Tạo Payload đóng gói thủ công chuẩn cấu trúc iOS để cài ngoài qua TrollStore/Esign
         mkdir -p Payload
         cp -r ios/build_output/App.app Payload/ 2>/dev/null || cp -r build_output/App.app Payload/
         zip -r ToanLop3-unsigned.ipa Payload
